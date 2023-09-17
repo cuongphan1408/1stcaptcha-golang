@@ -33,8 +33,13 @@ data, err := client.RecaptchaV2TaskProxyless(config)
 if err != nil { // error
     fmt.Println(err)
 }
-// success
-fmt.Println(data.Token)
+if data.Code != 0 {
+    // error
+    fmt.Println(data.Message)
+} else {
+    // success
+    fmt.Println(data.Token)
+}
 ```
 
 ## solver recaptcha v2 enterprise:
@@ -48,8 +53,13 @@ data, err := client.RecaptchaV2EnterpriseTaskProxyless(config)
 if err != nil { // error
     fmt.Println(err)
 }
-// success
-fmt.Println(data.Token)
+if data.Code != 0 {
+    // error
+    fmt.Println(data.Message)
+} else {
+    // success
+    fmt.Println(data.Token)
+}
 ```
 
 ## solver recaptcha v3:
@@ -80,7 +90,97 @@ data, err := client.RecaptchaV3EnterpriseTaskProxyless(config)
 if err != nil { // error
     fmt.Println(err)
 }
-// success
-fmt.Println(data.Token)
-fmt.Println(data.UserAgent)
+if data.Code != 0 {
+    // error
+    fmt.Println(data.Message)
+} else {
+    // success
+    fmt.Println(data.Token)
+    fmt.Println(data.UserAgent)
+}
+
+```
+
+## solve image2text
+
+```golang
+// input string
+config := onestcaptcha.ImageToTextConfig{
+    Base64Image: "BASE_64_STRING",
+}
+//input bytes file
+config := onestcaptcha.ImageToTextConfig{
+    File: "File",
+}
+data, err := client.ImageToText(config)
+if err != nil { // error
+    fmt.Println(err)
+}
+if data.Code != 0 {
+    // error
+    fmt.Println(data.Message)
+} else {
+    // success
+    fmt.Println(data.Token)
+}
+```
+
+## solve recaptchaClick
+
+```golang
+config := onestcaptcha.RecaptchaClickConfig{
+    UrlList: []string{"LIST_1_TO_9_IMAGE"},
+    Caption: "IMAGES_CAPTION",
+}
+data, err := client.RecaptchaClick(config)
+if err != nil { // error
+    fmt.Println(err.Error())
+}
+if data.Code != 0 {
+    // error
+    fmt.Println(data.Message)
+} else {
+    // success
+    fmt.Println(data.Token)
+}
+```
+
+## funcaptcha
+
+```golang
+config := onestcaptcha.FunCaptchaTaskProxylessConfig{
+    SiteURL: "https://signup.live.com",
+    SiteKey: "B7D8911C-5CC8-A9A3-35B0-554ACEE604DA",
+}
+data, err := client.FunCaptchaTaskProxyless(config)
+if err != nil { // error
+    fmt.Println(err)
+}
+if data.Code != 0 {
+    // error
+    fmt.Println(data.Message)
+} else {
+    // success
+    fmt.Println(data.Token)
+}
+```
+
+## hcaptcha
+
+```golang
+config := onestcaptcha.HCaptchaTaskProxylessConfig{
+    SiteURL: "https://discord.com/login",
+    SiteKey: "f5561ba9-8f1e-40ca-9b5b-a0b3f719ef34",
+}
+data, err := client.HCaptchaTaskProxyless(config)
+if err != nil { // error
+    fmt.Println(err)
+}
+if data.Code != 0 {
+    // error
+    fmt.Println(data.Message)
+} else {
+    // success
+    fmt.Println(data.Token)
+}
 ```

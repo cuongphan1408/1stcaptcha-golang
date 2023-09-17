@@ -1,6 +1,8 @@
 package onestcaptcha
 
 import (
+	"bytes"
+	"encoding/base64"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -27,10 +29,7 @@ type GetResultResponse struct {
 	Code    int
 	Status  string
 	Message string
-	Data    struct {
-		Token     string
-		UserAgent string
-	}
+	Data    any
 }
 type RecaptchaV2TaskProxylessConfig struct {
 	SiteURL   string
@@ -69,6 +68,35 @@ type RecaptchaV3EnterpriseTaskProxylessConfig struct {
 	TimeSleep  int
 }
 
+type ImageToTextConfig struct {
+	Base64Image string
+	File        []byte
+	Timeout     int
+	TimeSleep   int
+}
+
+type RecaptchaClickConfig struct {
+	UrlList   []string
+	Caption   string
+	Timeout   int
+	TimeSleep int
+}
+
+type FunCaptchaTaskProxylessConfig struct {
+	SiteURL   string
+	SiteKey   string
+	Timeout   int
+	TimeSleep int
+}
+
+type HCaptchaTaskProxylessConfig struct {
+	SiteURL   string
+	SiteKey   string
+	RqData    string
+	Timeout   int
+	TimeSleep int
+}
+
 // get task_id
 type TaskIDResponse struct {
 	Code    int
@@ -89,9 +117,6 @@ type RecaptchaUserAgentReturn struct {
 	Token     string
 	UserAgent string
 }
-
-const TIMEOUT_DEFAULT = 180  // seconds
-const TIME_SLEEP_DEFAULT = 2 // seconds
 
 func OneStCaptchaClient(apikey string) *OneStCaptcha {
 	return &OneStCaptcha{
@@ -142,10 +167,33 @@ func (c *OneStCaptcha) GetResult(taskID int, timeout int, timeSleep int, typeCap
 			if data.Code == 0 {
 				status := data.Status
 				if status == "SUCCESS" {
-					if typeCaptcha == "image2text" || typeCaptcha == "recaptcha_click" || typeCaptcha == "v3_enterprise" {
-						return data.Data, nil
+					if typeCaptcha == "v3_enterprise" {
+						data_map, ok := data.Data.(struct {
+							Token     string
+							UserAgent string
+						})
+						if !ok {
+							return "", errors.New("Error struct for Token and UserAgent")
+						}
+						return data_map, nil
+					} else if typeCaptcha == "recaptcha_click" || typeCaptcha == "image2text" {
+						dataStr, ok := data.Data.(string)
+						if !ok {
+							return "", errors.New("Error Data string")
+						}
+						return dataStr, nil
 					}
-					return data.Data.Token, nil
+					data_map, ok := data.Data.(struct {
+						Token string
+					})
+					if !ok {
+						data_map1, ok := data.Data.(map[string]interface{})
+						if !ok {
+							return "", errors.New("Error struct for Token")
+						}
+						return data_map1["Token"], nil
+					}
+					return data_map.Token, nil
 				} else if status == "ERROR" {
 					return "", errors.New(data.Message)
 				}
@@ -169,10 +217,10 @@ func (c *OneStCaptcha) RecaptchaV2TaskProxyless(config RecaptchaV2TaskProxylessC
 
 	// set default value
 	if timeout == 0 {
-		timeout = TIMEOUT_DEFAULT
+		timeout = 180
 	}
 	if timeSleep == 0 {
-		timeSleep = TIME_SLEEP_DEFAULT
+		timeSleep = 2
 	}
 	// invisible default false
 
@@ -225,10 +273,10 @@ func (c *OneStCaptcha) RecaptchaV2EnterpriseTaskProxyless(config RecaptchaV2Ente
 
 	// set default value
 	if timeout == 0 {
-		timeout = TIMEOUT_DEFAULT
+		timeout = 180
 	}
 	if timeSleep == 0 {
-		timeSleep = TIME_SLEEP_DEFAULT
+		timeSleep = 2
 	}
 
 	params := url.Values{
@@ -285,10 +333,10 @@ func (c *OneStCaptcha) RecaptchaV3TaskProxyless(config RecaptchaV3TaskProxylessC
 		minScore = 0.3
 	}
 	if timeout == 0 {
-		timeout = TIMEOUT_DEFAULT
+		timeout = 180
 	}
 	if timeSleep == 0 {
-		timeSleep = TIME_SLEEP_DEFAULT
+		timeSleep = 2
 	}
 
 	params := url.Values{
@@ -346,10 +394,10 @@ func (c *OneStCaptcha) RecaptchaV3EnterpriseTaskProxyless(config RecaptchaV3Ente
 		minScore = 0.3
 	}
 	if timeout == 0 {
-		timeout = TIMEOUT_DEFAULT
+		timeout = 180
 	}
 	if timeSleep == 0 {
-		timeSleep = TIME_SLEEP_DEFAULT
+		timeSleep = 2
 	}
 
 	params := url.Values{
@@ -396,5 +444,228 @@ func (c *OneStCaptcha) RecaptchaV3EnterpriseTaskProxyless(config RecaptchaV3Ente
 		}
 	} else {
 		return RecaptchaUserAgentReturn{}, errors.New("Error " + resp.Status)
+	}
+}
+
+func (c *OneStCaptcha) ImageToText(config ImageToTextConfig) (RecaptchaReturn, error) {
+	base64Image := config.Base64Image
+	file := config.File
+	timeout := config.Timeout
+	timeSleep := config.TimeSleep
+
+	// set default value
+	if timeout == 0 {
+		timeout = 60
+	}
+	if timeSleep == 0 {
+		timeSleep = 1
+	}
+
+	if base64Image != "" {
+		if len(file) > 0 {
+			base64Image = base64.StdEncoding.EncodeToString(file)
+
+		}
+	}
+	jsonData := map[string]string{
+		"Image":  base64Image,
+		"Apikey": c.apikey,
+		"Type":   "imagetotext",
+	}
+	jsonValue, _ := json.Marshal(jsonData)
+
+	url := fmt.Sprintf("%s/recognition", c.BASE_URL)
+	resp, err := http.Post(url, "application/json", bytes.NewBuffer(jsonValue))
+	if err != nil {
+		return RecaptchaReturn{Code: 1, Message: err.Error()}, nil
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode == http.StatusOK {
+		var data TaskIDResponse
+		err = json.NewDecoder(resp.Body).Decode(&data)
+		if err != nil {
+			return RecaptchaReturn{Code: 1, Message: err.Error()}, nil
+		}
+		if data.Code == 0 {
+			taskID := data.TaskId
+			data_return, err := c.GetResult(taskID, timeout, timeSleep, "image2text")
+			if err != nil {
+				return RecaptchaReturn{Code: 1, Message: err.Error()}, nil
+			}
+
+			tokenStr, ok := data_return.(string)
+			if !ok {
+				return RecaptchaReturn{}, errors.New("Error struct for Token")
+			}
+			return RecaptchaReturn{Code: 0, Message: "Success", Token: tokenStr}, nil
+		} else {
+			return RecaptchaReturn{}, errors.New("Error " + data.Message)
+		}
+	} else {
+		return RecaptchaReturn{}, errors.New("Error " + resp.Status)
+	}
+}
+
+func (c *OneStCaptcha) RecaptchaClick(config RecaptchaClickConfig) (RecaptchaReturn, error) {
+	urlList := config.UrlList
+	caption := config.Caption
+	timeout := config.Timeout
+	timeSleep := config.TimeSleep
+
+	// set default value
+	if timeout == 0 {
+		timeout = 60
+	}
+	if timeSleep == 0 {
+		timeSleep = 3
+	}
+
+	jsonData := map[string]any{
+		"Image_urls": urlList,
+		"Caption":    caption,
+		"Apikey":     c.apikey,
+		"Type":       "recaptcha",
+	}
+	jsonValue, _ := json.Marshal(jsonData)
+
+	url := fmt.Sprintf("%s/recognition", c.BASE_URL)
+	resp, err := http.Post(url, "application/json", bytes.NewBuffer(jsonValue))
+	if err != nil {
+		return RecaptchaReturn{Code: 1, Message: err.Error()}, nil
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode == http.StatusOK {
+		var data TaskIDResponse
+		err = json.NewDecoder(resp.Body).Decode(&data)
+		if err != nil {
+			return RecaptchaReturn{Code: 1, Message: err.Error()}, nil
+		}
+		if data.Code == 0 {
+			taskID := data.TaskId
+			data_return, err := c.GetResult(taskID, timeout, timeSleep, "recaptcha_click")
+			if err != nil {
+				return RecaptchaReturn{Code: 1, Message: err.Error()}, nil
+			}
+
+			tokenStr, ok := data_return.(string)
+			if !ok {
+				return RecaptchaReturn{}, errors.New("Error struct for Token")
+			}
+			return RecaptchaReturn{Code: 0, Message: "Success", Token: tokenStr}, nil
+		} else {
+			return RecaptchaReturn{}, errors.New("Error " + data.Message)
+		}
+	} else {
+		return RecaptchaReturn{}, errors.New("Error " + resp.Status)
+	}
+}
+
+func (c *OneStCaptcha) FunCaptchaTaskProxyless(config FunCaptchaTaskProxylessConfig) (RecaptchaReturn, error) {
+	siteKey := config.SiteKey
+	siteURL := config.SiteURL
+	timeout := config.Timeout
+	timeSleep := config.TimeSleep
+
+	// set default value
+	if timeout == 0 {
+		timeout = 180
+	}
+	if timeSleep == 0 {
+		timeSleep = 3
+	}
+
+	params := url.Values{
+		"apikey":  {c.apikey},
+		"sitekey": {siteKey},
+		"siteurl": {siteURL},
+	}
+
+	url := fmt.Sprintf("%s/funcaptchatokentask", c.BASE_URL) + "?" + params.Encode()
+	resp, err := http.Get(url)
+	if err != nil {
+		return RecaptchaReturn{Code: 1, Message: err.Error()}, nil
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode == http.StatusOK {
+		var data TaskIDResponse
+		err = json.NewDecoder(resp.Body).Decode(&data)
+		if err != nil {
+			return RecaptchaReturn{Code: 1, Message: err.Error()}, nil
+		}
+		if data.Code == 0 {
+			taskID := data.TaskId
+			token, err := c.GetResult(taskID, timeout, timeSleep, "")
+			if err != nil {
+				return RecaptchaReturn{Code: 1, Message: err.Error()}, nil
+			}
+			tokenStr, ok := token.(string)
+			if !ok {
+				return RecaptchaReturn{}, errors.New("Error Token must be String")
+			}
+			return RecaptchaReturn{Code: 0, Message: "Success", Token: tokenStr}, nil
+		} else {
+			return RecaptchaReturn{}, errors.New("Error " + data.Message)
+		}
+	} else {
+		return RecaptchaReturn{}, errors.New("Error " + resp.Status)
+	}
+}
+
+func (c *OneStCaptcha) HCaptchaTaskProxyless(config HCaptchaTaskProxylessConfig) (RecaptchaReturn, error) {
+	siteKey := config.SiteKey
+	siteURL := config.SiteURL
+	rqData := config.RqData
+	timeout := config.Timeout
+	timeSleep := config.TimeSleep
+
+	// set default value
+	if timeout == 0 {
+		timeout = 180
+	}
+	if timeSleep == 0 {
+		timeSleep = 3
+	}
+
+	params := url.Values{
+		"apikey":  {c.apikey},
+		"sitekey": {siteKey},
+		"siteurl": {siteURL},
+	}
+	if rqData != "" {
+		params.Add("rqdata", rqData)
+	}
+
+	url := fmt.Sprintf("%s/hcaptcha", c.BASE_URL) + "?" + params.Encode()
+	resp, err := http.Get(url)
+	if err != nil {
+		return RecaptchaReturn{Code: 1, Message: err.Error()}, nil
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode == http.StatusOK {
+		var data TaskIDResponse
+		err = json.NewDecoder(resp.Body).Decode(&data)
+		if err != nil {
+			return RecaptchaReturn{Code: 1, Message: err.Error()}, nil
+		}
+		if data.Code == 0 {
+			taskID := data.TaskId
+			token, err := c.GetResult(taskID, timeout, timeSleep, "")
+			if err != nil {
+				return RecaptchaReturn{Code: 1, Message: err.Error()}, nil
+			}
+			tokenStr, ok := token.(string)
+			if !ok {
+				return RecaptchaReturn{}, errors.New("Error Token must be String")
+			}
+			return RecaptchaReturn{Code: 0, Message: "Success", Token: tokenStr}, nil
+		} else {
+			return RecaptchaReturn{}, errors.New("Error " + data.Message)
+		}
+	} else {
+		return RecaptchaReturn{}, errors.New("Error " + resp.Status)
 	}
 }
