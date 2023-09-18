@@ -21,6 +21,17 @@ var APIKEY = "0aa92cd8393a49698c408ea0ee56c2a5"
 client := onestcaptcha.OneStCaptchaClient(APIKEY)
 ```
 
+## get balance
+
+```golang
+balance, err := client.GetBalance()
+if err != nil { // error
+    fmt.Println(err)
+} else {
+    fmt.Println(balance)
+}
+```
+
 ## solver recaptcha v2:
 
 ```golang
