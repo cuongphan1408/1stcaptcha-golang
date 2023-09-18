@@ -15,7 +15,7 @@ go get it as github.com/1stcaptcha/1stcaptcha-golang, import it as "github.com/1
 ## init client
 
 ```golang
-import "onestcaptcha"
+import onestcaptcha "github.com/1stcaptcha/1stcaptcha-golang"
 
 var APIKEY = "0aa92cd8393a49698c408ea0ee56c2a5"
 client := onestcaptcha.OneStCaptchaClient(APIKEY)
