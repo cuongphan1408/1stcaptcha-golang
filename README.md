@@ -26,7 +26,7 @@ client := onestcaptcha.OneStCaptchaClient(APIKEY)
 ```golang
 config := onestcaptcha.RecaptchaV2TaskProxylessConfig{
     SiteURL: "https://www.google.com/recaptcha/api2/demo",
-    SiteKey: "6Le-wvkSAAAAAPBMRTvw0Q4Muexq9bi0DJw",
+    SiteKey: "6Le-wvkSAAAAAPBMRTvw0Q4Muexq9bi0DJwx_mJ-",
     Invisible: true,
 }
 data, err := client.RecaptchaV2TaskProxyless(config)
