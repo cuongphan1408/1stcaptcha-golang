@@ -7,8 +7,7 @@ Solver recaptchaV2, recaptchaV3, hcaptcha, funcaptcha, imageToText, Zalo Captcha
 # Install
 
 ```bash
-# go get github.com/1stcaptcha/1stcaptcha-golang
-go get package onestcaptcha
+go get it as github.com/1stcaptcha/1stcaptcha-golang, import it as "github.com/1stcaptcha/1stcaptcha-golang", use it as onestcaptcha.
 ```
 
 # Usage
